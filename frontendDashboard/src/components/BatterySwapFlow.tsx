@@ -6,6 +6,9 @@ import { SwapSession, User } from '../types/battery'; // RFIDCard removed as it'
 import BatteryGrid from './battery/BatteryGrid';
 import ProgressSteps from './battery/ProgressSteps';
 import StepContent from './battery/StepContent';
+import { set } from 'date-fns';
+
+
 
 interface BatterySwapFlowProps {
   step: number;
@@ -13,6 +16,7 @@ interface BatterySwapFlowProps {
   onStepComplete: (step: number) => void;
   swapSession: SwapSession | null;
   setSwapSession: (session: SwapSession | null) => void;
+  setStep: (step: number) => void; 
 }
 
 const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({ 
@@ -20,7 +24,9 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
   onBack, 
   onStepComplete,
   swapSession,
-  setSwapSession
+  setSwapSession,
+  setStep
+  
 }) => {
   useEffect(() => {
     const handleStepLogic = async () => {
@@ -39,7 +45,7 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
             if (swapSession?.returnedBatterySlot && swapSession.rfidCard?.assigned_battery_id) {
               // Assuming returnedBatterySlot is the ID of the battery they are returning
               // And rfidCard.assigned_battery_id was the battery they had
-              // This logic needs to be clearer: what does checkBatteryHealth do?
+              
               // For now, let's assume we check the health of the battery they *had*.
               // const batteryToCheck = await batteryApi.getBattery(swapSession.rfidCard.assigned_battery_id);
               // const healthLogs = await batteryApi.getBatteryHealthLogs(batteryToCheck.id);
@@ -67,7 +73,7 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
           
           case 5: { // Complete - Wrapped in block
             if (swapSession?.sessionId) {
-              // await batteryApi.completeSwapSession(swapSession.sessionId); // This API function doesn't exist
+              // await batteryApi.completeSwapSession(swapSession.sessionId); 
               // What does completing a session mean in the new API?
               // Maybe update RFID card's assigned_battery_id to the new battery?
               // Update status of old and new batteries?
@@ -84,6 +90,12 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
 
     handleStepLogic();
   }, [step, swapSession]);
+
+  const handleBackToWeatherClick = () => {
+    setStep(1);
+    setSwapSession(null);
+    onBack();
+  };
 
   const handleRFIDScanned = async (rfidCode: string) => {
     try {
@@ -161,6 +173,7 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
 
         <button
           onClick={onBack}
+          onClick={handleBackToWeatherClick}
           className="mt-6 text-white/60 hover:text-white transition-colors"
         >
           Back to Weather

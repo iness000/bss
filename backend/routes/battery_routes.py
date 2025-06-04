@@ -24,24 +24,14 @@ def create_battery():
 @battery_bp.route('/batteries', methods=['GET'])
 def get_batteries():
     batteries = Battery.query.all()
-    return jsonify([{
-        "id": battery.id, "station_id": battery.station_id, "status": battery.status,
-        "serial_number": battery.serial_number, "battery_type": battery.battery_type,
-        "battery_capacity": battery.battery_capacity,
-        "manufacture_date": str(battery.manufacture_date) if battery.manufacture_date else None,
-        "created_at": str(battery.created_at), "updated_at": str(battery.updated_at)
-    } for battery in batteries])
+    return jsonify([battery.to_dict() for battery in batteries])
+
 
 @battery_bp.route('/batteries/<int:battery_id>', methods=['GET'])
 def get_battery(battery_id):
     battery = Battery.query.get_or_404(battery_id)
-    return jsonify({
-        "id": battery.id, "station_id": battery.station_id, "status": battery.status,
-        "serial_number": battery.serial_number, "battery_type": battery.battery_type,
-        "battery_capacity": battery.battery_capacity,
-        "manufacture_date": str(battery.manufacture_date) if battery.manufacture_date else None,
-        "created_at": str(battery.created_at), "updated_at": str(battery.updated_at)
-    })
+    return jsonify(battery.to_dict())
+
 
 @battery_bp.route('/batteries/<int:battery_id>', methods=['PUT'])
 def update_battery(battery_id):

@@ -3,6 +3,13 @@ from flask_cors import CORS
 import os
 from dotenv import load_dotenv
 from models import db
+from mqtt.mqtt_auth_listener import start_mqtt_listener
+import threading
+from flask_socketio import SocketIO
+
+
+
+
 
 # Import Blueprints
 from routes.user_routes import user_bp
@@ -14,11 +21,19 @@ from routes.subscription_plan_routes import subscription_plan_bp
 from routes.station_routes import station_bp
 from routes.slot_routes import slot_bp
 from routes.swap_routes import swap_bp
+from flask_migrate import Migrate
+
 
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["http://localhost:5173"])
+
+# 🔌 Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# ✅ Pass socketio instance to your MQTT module later
+app.config['socketio'] = socketio
 
 # Database Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI') or \
@@ -45,4 +60,10 @@ def hello():
     return jsonify({"message": "Hello from Flask! Database connected."})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+     # Only start MQTT when not in reloader process
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+        threading.Thread(target=start_mqtt_listener, args=(app,), daemon=True).start()
+
+        print("🚀 MQTT Listener started...")
+    socketio.run(app, debug=True, port=5000)
+    

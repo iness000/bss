@@ -1,5 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date
+from sqlalchemy.orm import column_property
+from sqlalchemy import select, func
 
 db = SQLAlchemy()
 
@@ -48,23 +50,6 @@ class RFIDCard(db.Model):
     issued_at = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(50), default='active')
 
-# ---------------- BATTERIES ----------------
-class Battery(db.Model):
-    __tablename__ = 'batteries'
-    id = db.Column(db.Integer, primary_key=True)
-    station_id = db.Column(db.Integer, db.ForeignKey('stations.id'))
-    status = db.Column(db.String(50), nullable=False)  # e.g., 'available', 'in_use', 'charging'
-    serial_number = db.Column(db.String(255), unique=True, nullable=False)
-    battery_type = db.Column(db.String(100))
-    battery_capacity = db.Column(db.Float)
-    manufacture_date = db.Column(db.String(10))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    health_logs = db.relationship('BatteryHealthLog', backref='battery', lazy=True)
-    rfid_cards = db.relationship('RFIDCard', backref='battery', lazy=True, foreign_keys='RFIDCard.assigned_battery_id')
-    slots = db.relationship('Slot', backref='battery', lazy=True, foreign_keys='Slot.battery_id')
-
 # ---------------- BATTERY HEALTH LOGS ----------------
 class BatteryHealthLog(db.Model):
     __tablename__ = 'battery_health_logs'
@@ -83,14 +68,68 @@ class BatteryHealthLog(db.Model):
     error_code = db.Column(db.String(50))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+
+# ---------------- BATTERIES ----------------
+class Battery(db.Model):
+    __tablename__ = 'batteries'
+    id = db.Column(db.Integer, primary_key=True)
+    station_id = db.Column(db.Integer, db.ForeignKey('stations.id'))
+    status = db.Column(db.String(50), nullable=False)  # e.g., 'available', 'in_use', 'charging'
+    serial_number = db.Column(db.String(255), unique=True, nullable=False)
+    battery_type = db.Column(db.String(100))
+    battery_capacity = db.Column(db.Float)
+    manufacture_date = db.Column(db.String(10))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    health_logs = db.relationship('BatteryHealthLog', backref='battery', lazy=True, cascade="all, delete-orphan")
+    rfid_cards = db.relationship('RFIDCard', backref='battery', lazy=True, foreign_keys='RFIDCard.assigned_battery_id')
+    slots = db.relationship('Slot', backref='battery', lazy=True, foreign_keys='Slot.battery_id')
+    latest_soh_percent = column_property(
+        select(BatteryHealthLog.soh_percent)
+        .where(BatteryHealthLog.battery_id == id)
+        .order_by(BatteryHealthLog.created_at.desc())
+        .limit(1)
+        .correlate_except(BatteryHealthLog) # Correlate with the outer Battery query's 'id'
+        .scalar_subquery(),
+        deferred=True # Defer loading until accessed, can be good for performance
+    )
+
+    latest_cycle_count = column_property(
+        select(BatteryHealthLog.cycle_count)
+        .where(BatteryHealthLog.battery_id == id)
+        .order_by(BatteryHealthLog.created_at.desc())
+        .limit(1)
+        .correlate_except(BatteryHealthLog)
+        .scalar_subquery(),
+        deferred=True
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'station_id': self.station_id,
+            'status': self.status,
+            'serial_number': self.serial_number,
+            'battery_type': self.battery_type,
+            'battery_capacity': self.battery_capacity,
+            'manufacture_date': self.manufacture_date,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'latest_soh_percent': self.latest_soh_percent,
+            'latest_cycle_count': self.latest_cycle_count
+        }
+
 # ---------------- STATIONS ----------------
 class Station(db.Model):
     __tablename__ = 'stations'
+    
     id = db.Column(db.Integer, primary_key=True)
     location = db.Column(db.String(255))
     name = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 
     batteries = db.relationship('Battery', backref='station', lazy=True)
     slots = db.relationship('Slot', backref='station', lazy=True)
@@ -110,8 +149,8 @@ class Slot(db.Model):
 class Swap(db.Model):
     __tablename__ = 'swaps'
     id = db.Column(db.Integer, primary_key=True)
-    issued_battery_id = db.Column(db.Integer, db.ForeignKey('batteries.id'))
-    returned_battery_id = db.Column(db.Integer, db.ForeignKey('batteries.id'))
+    issued_battery_id = db.Column(db.Integer,nullable=False)
+    returned_battery_id = db.Column(db.Integer, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     pickup_station_id = db.Column(db.Integer, db.ForeignKey('stations.id'))
     deposit_station_id = db.Column(db.Integer, db.ForeignKey('stations.id'))
