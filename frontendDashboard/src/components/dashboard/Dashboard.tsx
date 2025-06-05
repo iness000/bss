@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSocket } from '../../Hooks/useSocket';
 import { motion } from 'framer-motion';
 import Layout from '../layout/Layout';
 import WeatherSection from './sections/WeatherSection';
@@ -12,6 +13,35 @@ const Dashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<DashboardView>('weather');
   const [swapSession, setSwapSession] = useState<SwapSession | null>(null);
   const [swapStep, setSwapStep] = useState<number>(1);
+
+  useSocket({
+    onAuth: (data) => {
+      console.log('auth_response', data);
+      setCurrentView('battery');
+      if (data.status === 'success') {
+        setSwapStep(2);
+      }
+    },
+    onSwapInitiated: (data) => {
+      console.log('swap_initiated', data);
+      setCurrentView('battery');
+      setSwapStep(3);
+    },
+    onSwapResult: (data) => {
+      console.log('swap_result', data);
+      setCurrentView('battery');
+      if (data.status === 'success') {
+        setSwapStep(5);
+      } else {
+        setSwapStep(1);
+      }
+    },
+    onSwapRefused: (data) => {
+      console.log('swap_refused', data);
+      setCurrentView('battery');
+      setSwapStep(1);
+    },
+  });
 
   const handleViewChange = (view: DashboardView) => {
     setCurrentView(view);
