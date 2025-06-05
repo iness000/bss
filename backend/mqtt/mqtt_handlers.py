@@ -39,6 +39,9 @@ def handle_auth_request(client, station_id, data, app, socketio):
             payload = {
                 "status": "success",
                 "user_id": card.user_id,
+                "sessionId": str(card.user_id),  # Using user_id as a placeholder for sessionId
+                "rfidCard": {"rfid_code": rfid_code, "user_id": card.user_id, "user": {"id": card.user_id, "name": card.user.name if card.user else 'N/A'}},
+                "user": {"id": card.user_id, "name": card.user.name if card.user else 'N/A'},
                 "message": "Access granted",
                 "timestamp": data.get("timestamp")
             }
@@ -51,7 +54,9 @@ def handle_auth_request(client, station_id, data, app, socketio):
         topic = f"bss/{station_id}/user/auth/response"
         client.publish(topic, json.dumps(payload), qos=2)
         print(f"📤 Sent auth response to {topic}")
-        socketio.emit("auth_response", payload, broadcast=True)
+        print(f"Emitting 'auth_response' via Socket.IO with payload: {payload}")
+        print("Emitting auth_response event")
+        socketio.emit("auth_response", payload)
 
 
 def handle_swap_initiate(station_id, data, socketio):
@@ -67,7 +72,9 @@ def handle_swap_initiate(station_id, data, socketio):
         "temperature": data.get("temperature"),
         "timestamp": data.get("timestamp") or datetime.utcnow().isoformat()
     }
-    socketio.emit("swap_initiated", payload, broadcast=True)
+    print(f"Emitting 'swap_initiated' via Socket.IO with payload: {payload}")
+    print("Emitting swap_initiated event")
+    socketio.emit("swap_initiated", payload)
 
 
 def handle_swap_activity(client, station_id, data, socketio):
@@ -101,7 +108,9 @@ def handle_swap_activity(client, station_id, data, socketio):
             }
             client.publish(f"bss/{station_id}/swap/confirmation", json.dumps(confirmation), qos=2)
             print("📤 Sent swap confirmation to simulator")
-            socketio.emit("swap_result", confirmation, broadcast=True)
+            print(f"Emitting 'swap_result' (success) via Socket.IO with payload: {confirmation}")
+            print("Emitting swap_result event")
+            socketio.emit("swap_result", confirmation)
         else:
             print(f"⚠️ Swap API error: {response.status_code} - {response.text}")
             error_msg = {
@@ -112,7 +121,8 @@ def handle_swap_activity(client, station_id, data, socketio):
             }
             client.publish(f"bss/{station_id}/swap/error", json.dumps(error_msg), qos=2)
             print("📤 Sent swap error to simulator")
-            socketio.emit("swap_result", error_msg, broadcast=True)
+            print(f"Emitting 'swap_result' (error) via Socket.IO with payload: {error_msg}")
+            socketio.emit("swap_result", error_msg)
     except Exception as e:
         print(f"❌ Failed to call swap API: {e}")
         print(f"API URL: http://localhost:5000/api/swaps")
@@ -133,5 +143,6 @@ def handle_swap_refused(station_id, data, socketio):
         "temperature": data['temperature'],
         "timestamp": datetime.utcnow().isoformat()
     }
-    socketio.emit("swap_refused", refused_payload, broadcast=True)
+    print(f"Emitting 'swap_refused' via Socket.IO with payload: {refused_payload}")
+    socketio.emit("swap_refused", refused_payload)
 

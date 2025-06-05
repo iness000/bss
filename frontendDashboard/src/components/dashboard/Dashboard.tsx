@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Layout from '../layout/Layout';
 import WeatherSection from './sections/WeatherSection';
@@ -11,14 +11,18 @@ type DashboardView = 'weather' | 'battery';
 const Dashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<DashboardView>('weather');
   const [swapSession, setSwapSession] = useState<SwapSession | null>(null);
-  const [swapStep, setSwapStep] = useState<number>(1);
+
+  // Debug: Log currentView changes
+  useEffect(() => {
+    console.log('[Dashboard] currentView changed to:', currentView);
+  }, [currentView]);
 
   const handleViewChange = (view: DashboardView) => {
     setCurrentView(view);
     // Reset swap session when changing views
     if (view !== 'battery') {
       setSwapSession(null);
-      setSwapStep(1);
+     
     }
   };
 
@@ -31,8 +35,7 @@ const Dashboard: React.FC = () => {
           <BatterySection
             swapSession={swapSession}
             setSwapSession={setSwapSession}
-            swapStep={swapStep}
-            setSwapStep={setSwapStep}
+           
             onBack={() => setCurrentView('weather')}
           />
         );

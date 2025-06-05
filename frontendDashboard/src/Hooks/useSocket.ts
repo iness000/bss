@@ -10,16 +10,22 @@ export const useSocket = (onEvents: {
   onSwapRefused?: (data: any) => void;
 }) => {
   useEffect(() => {
-    socket.on("auth_response", onEvents.onAuth || (() => {}));
-    socket.on("swap_initiated", onEvents.onSwapInitiated || (() => {}));
-    socket.on("swap_result", onEvents.onSwapResult || (() => {}));
-    socket.on("swap_refused", onEvents.onSwapRefused || (() => {}));
+    console.log('[useSocket] useEffect triggered. Attaching/Re-attaching listeners.');
+    socket.on('connect', () => {
+      console.log('[useSocket] Socket connected! SID:', socket.id);
+    });
+    if (onEvents.onAuth) socket.on("auth_response", onEvents.onAuth);
+    if (onEvents.onSwapInitiated) socket.on("swap_initiated", onEvents.onSwapInitiated);
+    if (onEvents.onSwapResult) socket.on("swap_result", onEvents.onSwapResult);
+    if (onEvents.onSwapRefused) socket.on("swap_refused", onEvents.onSwapRefused);
 
     return () => {
-      socket.off("auth_response");
-      socket.off("swap_initiated");
-      socket.off("swap_result");
-      socket.off("swap_refused");
+     console.log('[useSocket] useEffect cleanup. Detaching listeners.');
+     socket.off('connect');
+     if (onEvents.onAuth) socket.off("auth_response");
+     if (onEvents.onSwapInitiated) socket.off("swap_initiated");
+     if (onEvents.onSwapResult) socket.off("swap_result");
+     if (onEvents.onSwapRefused) socket.off("swap_refused");
     };
-  }, []);
+  }, [onEvents]);
 };

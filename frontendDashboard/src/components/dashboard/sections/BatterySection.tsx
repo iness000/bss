@@ -5,22 +5,18 @@ import { SwapSession } from '../../../types/battery';
 
 interface BatterySectionProps {
   swapSession: SwapSession | null;
-  setSwapSession: (session: SwapSession | null) => void;
-  swapStep: number;
-  setSwapStep: (step: number) => void;
+  setSwapSession: React.Dispatch<React.SetStateAction<SwapSession | null>>;
+  
   onBack: () => void;
 }
 
 const BatterySection: React.FC<BatterySectionProps> = ({
   swapSession,
   setSwapSession,
-  swapStep,
-  setSwapStep,
+  
   onBack
 }) => {
-  const handleStepComplete = (step: number) => {
-    setSwapStep(step + 1);
-  };
+  console.log('[BatterySection] Rendering');
 
   return (
     <motion.div
@@ -29,10 +25,9 @@ const BatterySection: React.FC<BatterySectionProps> = ({
       transition={{ duration: 0.5 }}
     >
       <BatterySwapFlow
-        step={swapStep}
+        
         onBack={onBack}
-        onStepComplete={handleStepComplete}
-        setStep={setSwapStep}
+        
         swapSession={swapSession}
         setSwapSession={setSwapSession}
       />
