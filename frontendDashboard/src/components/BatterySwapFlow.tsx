@@ -1,5 +1,5 @@
 // import { motion } from 'framer-motion'; // Marked as unused
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { useSocket } from '../Hooks/useSocket';
 import { SwapSession, RFIDCard, User } from '../types/battery';
 import ProgressSteps from './battery/ProgressSteps';
@@ -20,7 +20,7 @@ interface BatterySwapFlowProps {
 
 // Interfaces for socket event data
 interface AuthResponseData {
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'failure';
   message?: string;
   sessionId?: string; // CRITICAL: Assumed to be sent by backend on successful auth
   user?: User;
@@ -29,7 +29,7 @@ interface AuthResponseData {
 
 interface SwapInitiatedData {
   slot_id_returned: string;
-  battery_id_returned: string;
+  battery_id: string;
 }
 
 interface SwapResultData {
@@ -51,7 +51,7 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
   swapSession,
   setSwapSession,
 }) => {
-  console.log('[BatterySwapFlow] Rendering');
+  console.log('--- BATTERYSWAPFLOW IS RENDERING ---');
   const { currentStep: step, setCurrentStep } = useProgress();
 
   // Debug: Log component mount/unmount
@@ -68,7 +68,7 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
   }, [swapSession]);
 
   // Socket event handlers
-  const handleAuthResponse = (data: AuthResponseData) => {
+  const handleAuthResponse = useCallback((data: AuthResponseData) => {
     console.log('[BatterySwapFlow] handleAuthResponse called with data:', data);
     console.log('[SocketIO] Received auth_response:', data);
     console.log('Socket event: auth_response', data);
@@ -99,9 +99,9 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
       setCurrentStep(1);
       setSwapSession(null);
     }
-  };
+  }, [setSwapSession, setCurrentStep]);
 
-  const handleSwapInitiated = (data: SwapInitiatedData) => {
+  const handleSwapInitiated = useCallback((data: SwapInitiatedData) => {
     console.log('[BatterySwapFlow] handleSwapInitiated called with data:', data);
     console.log('[SocketIO] Received swap_initiated:', data);
     console.log('Socket event: swap_initiated', data);
@@ -114,7 +114,7 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
         return {
           ...prev,
           returnedBatterySlot: data.slot_id_returned,
-          returnedBatteryId: data.battery_id_returned,
+          returnedBatteryId: data.battery_id,
           status: 'battery_return_initiated',
         };
       });
@@ -123,9 +123,9 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
       console.error('Swap initiated event missing data', data);
       // Optionally handle this error, e.g., by alerting the user or staying on the current step
     }
-  };
+  }, [setSwapSession, setCurrentStep]);
 
-  const handleSwapResult = (data: SwapResultData) => {
+  const handleSwapResult = useCallback((data: SwapResultData) => {
     console.log('[BatterySwapFlow] handleSwapResult called with data:', data);
     console.log('[SocketIO] Received swap_result:', data);
     console.log('Socket event: swap_result', data);
@@ -152,16 +152,16 @@ const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({
       // For now, let's go back to step 2 (Return Battery)
       setCurrentStep(2);
     }
-  };
+  }, [setSwapSession, setCurrentStep]);
 
-  const handleSwapRefused = (data: SwapRefusedData) => {
+  const handleSwapRefused = useCallback((data: SwapRefusedData) => {
     console.log('[BatterySwapFlow] handleSwapRefused called with data:', data);
     console.log('[SocketIO] Received swap_refused:', data);
     console.log('Socket event: swap_refused', data);
     alert(`Swap Refused: ${data?.reason || 'Unknown reason'}`);
     // Potentially revert to a previous step, e.g., step 2
     setCurrentStep(2);
-  };
+  }, [setCurrentStep]);
 
   // Register socket event listeners
   // Register socket event listeners at the top level (NOT inside useEffect)

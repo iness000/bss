@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '../layout/Layout';
 import WeatherSection from './sections/WeatherSection';
 import BatterySection from './sections/BatterySection';
@@ -47,16 +47,17 @@ const Dashboard: React.FC = () => {
   return (
     <Layout title="Battery Swap Station" subtitle="Smart Energy Management System">
       <Navigation currentView={currentView} onViewChange={handleViewChange} />
-      <motion.div
-        key={currentView}
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        transition={{ duration: 0.3 }}
-        className="mt-6"
-      >
-        {renderCurrentView()}
-      </motion.div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+          className="mt-6"
+        >
+          {renderCurrentView()}
+        </motion.div>
+      </AnimatePresence>
     </Layout>
   );
 };

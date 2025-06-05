@@ -16,7 +16,7 @@ const BatterySection: React.FC<BatterySectionProps> = ({
   
   onBack
 }) => {
-  console.log('[BatterySection] Rendering');
+  console.log('--- BATTERYSECTION IS RENDERING ---');
 
   return (
     <motion.div
