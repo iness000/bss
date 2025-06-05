@@ -1,6 +1,9 @@
+
 import React, { useState } from 'react';
 import { useSocket } from '../../Hooks/useSocket';
-import { motion } from 'framer-motion';
+
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '../layout/Layout';
 import WeatherSection from './sections/WeatherSection';
 import BatterySection from './sections/BatterySection';
@@ -12,7 +15,11 @@ type DashboardView = 'weather' | 'battery';
 const Dashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<DashboardView>('weather');
   const [swapSession, setSwapSession] = useState<SwapSession | null>(null);
-  const [swapStep, setSwapStep] = useState<number>(1);
+
+  // Debug: Log currentView changes
+  useEffect(() => {
+    console.log('[Dashboard] currentView changed to:', currentView);
+  }, [currentView]);
 
   useSocket({
     onAuth: (data) => {
@@ -48,7 +55,7 @@ const Dashboard: React.FC = () => {
     // Reset swap session when changing views
     if (view !== 'battery') {
       setSwapSession(null);
-      setSwapStep(1);
+     
     }
   };
 
@@ -61,8 +68,7 @@ const Dashboard: React.FC = () => {
           <BatterySection
             swapSession={swapSession}
             setSwapSession={setSwapSession}
-            swapStep={swapStep}
-            setSwapStep={setSwapStep}
+           
             onBack={() => setCurrentView('weather')}
           />
         );
@@ -74,16 +80,17 @@ const Dashboard: React.FC = () => {
   return (
     <Layout title="Battery Swap Station" subtitle="Smart Energy Management System">
       <Navigation currentView={currentView} onViewChange={handleViewChange} />
-      <motion.div
-        key={currentView}
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
-        transition={{ duration: 0.3 }}
-        className="mt-6"
-      >
-        {renderCurrentView()}
-      </motion.div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+          className="mt-6"
+        >
+          {renderCurrentView()}
+        </motion.div>
+      </AnimatePresence>
     </Layout>
   );
 };

@@ -1,13 +1,12 @@
 import { motion } from 'framer-motion';
 import { Battery, CheckCircle, Clock, CreditCard } from 'lucide-react';
-import { useState } from 'react';
 import BatteryHealthDisplay from './BatteryHealthDisplay';
+import { SwapSession } from '../../types/battery';
 
 interface StepContentProps {
   step: number;
   onBack?: () => void;
-  onNext: () => void;
-  onRFIDScanned?: (token: string) => void;
+  swapSession: SwapSession | null;
 }
 
 const steps = [
@@ -38,16 +37,10 @@ const steps = [
   }
 ];
 
-const StepContent: React.FC<StepContentProps> = ({ step, onRFIDScanned, onNext }) => {
-  const [rfidInput, setRfidInput] = useState('');
+const StepContent: React.FC<StepContentProps> = ({ step, swapSession }) => {
+  
   const currentStep = steps[step - 1];
   console.log(currentStep)
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (rfidInput && onRFIDScanned) {
-      onRFIDScanned(rfidInput);
-    }
-  };
 
   return (
     <motion.div
@@ -66,43 +59,20 @@ const StepContent: React.FC<StepContentProps> = ({ step, onRFIDScanned, onNext }
         {currentStep.description}
       </p>
 
-      {step === 1 && (
-        <form onSubmit={handleSubmit} className="max-w-xs mx-auto">
-          <input
-            type="text"
-            value={rfidInput}
-            onChange={(e) => setRfidInput(e.target.value)}
-            placeholder="Enter RFID token"
-            className="w-full bg-white/10 backdrop-blur-lg text-white placeholder-white/60 px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-white/30 transition-all mb-4"
-          />
-          <button
-            type="submit"
-            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl transition-colors"
-            disabled={!rfidInput}
-          >
-            Scan Card
-          </button>
-        </form>
-      )}
+   
 
       {step === 4 && (
         <div className="mb-6">
           <BatteryHealthDisplay
-            soh={85}
-            soc={29}
-            temperature={27}
+            soh={swapSession?.newBatterySoh ?? 0} 
+            soc={swapSession?.newBatterySoc ?? 0}
+            temperature={swapSession?.newBatteryTemp ?? 0}
           />
         </div>
       )}
 
-      {step > 1 && step != steps.length && (
-        <button
-          onClick={onNext}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-xl transition-colors"
-        >
-          Next
-        </button>
-      )}
+      
+      
     </motion.div>
   );
 };

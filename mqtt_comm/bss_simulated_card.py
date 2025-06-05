@@ -73,7 +73,7 @@ def simulate_swap(user_id):
     # If accepted:
     swap_data = {
         "user_id": user_id,
-        "battery_in_id": "1",
+        "battery_in_id": "7",
         "battery_in_health_status": "accepted",
         "soc": soc,
         "voltage": 52.3,
@@ -87,7 +87,7 @@ def simulate_swap(user_id):
     time.sleep(1)
 
     log_data = {
-        "battery_in_id": "1",
+        "battery_in_id": "7",
         "battery_out_id": "3",
         "user_id": user_id,
         "battery_in_data": {"soc": soc, "soh": soh},

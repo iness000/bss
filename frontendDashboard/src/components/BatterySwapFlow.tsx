@@ -1,183 +1,201 @@
 // import { motion } from 'framer-motion'; // Marked as unused
-import { useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid'; // For generating sessionId
-import { batteryApi } from '../api/batteryApi';
-import { SwapSession, User } from '../types/battery'; // RFIDCard removed as it's part of SwapSession.user.rfidCard
-import BatteryGrid from './battery/BatteryGrid';
+import React, { useEffect, useCallback } from 'react';
+import { useSocket } from '../Hooks/useSocket';
+import { SwapSession, RFIDCard, User } from '../types/battery';
 import ProgressSteps from './battery/ProgressSteps';
 import StepContent from './battery/StepContent';
-import { set } from 'date-fns';
+import { useProgress } from '../context/ProgressContext';
+
 
 
 
 interface BatterySwapFlowProps {
-  step: number;
+  
   onBack: () => void;
-  onStepComplete: (step: number) => void;
+
   swapSession: SwapSession | null;
-  setSwapSession: (session: SwapSession | null) => void;
-  setStep: (step: number) => void; 
+  setSwapSession: React.Dispatch<React.SetStateAction<SwapSession | null>>;
+  
+}
+
+// Interfaces for socket event data
+interface AuthResponseData {
+  status: 'success' | 'error' | 'failure';
+  message?: string;
+  sessionId?: string; // CRITICAL: Assumed to be sent by backend on successful auth
+  user?: User;
+  rfidCard?: RFIDCard;
+}
+
+interface SwapInitiatedData {
+  slot_id_returned: string;
+  battery_id: string;
+}
+
+interface SwapResultData {
+  status: 'success' | 'error';
+  message?: string;
+  slot_id_new?: string;
+  battery_id_new?: string;
+  soh?: number; // State of Health for the new battery
+  soc?: number; // State of Charge for the new battery
+  temperature?: number; // Temperature of the new battery
+}
+
+interface SwapRefusedData {
+  reason: string;
 }
 
 const BatterySwapFlow: React.FC<BatterySwapFlowProps> = ({ 
-  step, 
   onBack, 
-  onStepComplete,
   swapSession,
   setSwapSession,
-  setStep
-  
 }) => {
-  useEffect(() => {
-    const handleStepLogic = async () => {
-      try {
-        switch (step) {
-          case 1: // RFID Scan
-            // Logic is primarily handled by handleRFIDScanned
-            break;
-          
-          case 2: { 
-            console.log("Step 2: Return batteries - UI/logic to select slot for return needed.");
-            break;
-          }
-          
-          case 3: { // Checking batteries - Wrapped in block
-            if (swapSession?.returnedBatterySlot && swapSession.rfidCard?.assigned_battery_id) {
-              // Assuming returnedBatterySlot is the ID of the battery they are returning
-              // And rfidCard.assigned_battery_id was the battery they had
-              
-              // For now, let's assume we check the health of the battery they *had*.
-              // const batteryToCheck = await batteryApi.getBattery(swapSession.rfidCard.assigned_battery_id);
-              // const healthLogs = await batteryApi.getBatteryHealthLogs(batteryToCheck.id);
-              // console.log(`Health logs for battery ${batteryToCheck.serial_number}:`, healthLogs);
-              // if (healthLogs.length > 0 && healthLogs[0].soh_percent && healthLogs[0].soh_percent > 20) { // Arbitrary health check
-              //   onStepComplete(step);
-              // } else {
-              //   alert("Returned battery health is too low or data unavailable.");
-              // }
-              console.log("Step 3: Checking returned battery - Logic needs to be implemented with new API.");
-              // Simulating success for now
-              onStepComplete(step);
-            } else {
-              console.log("Step 3: Cannot check battery, missing returnedBatterySlot or assigned_battery_id in session.");
-            }
-            break;
-          }
-          
-          case 4: { // Take out new batteries - Wrapped in block
-            // Wait for user to take batteries
-            // This would involve finding an 'available' battery at the station
-            console.log("Step 4: Take out new batteries - UI/logic to select available battery needed.");
-            break;
-          }
-          
-          case 5: { // Complete - Wrapped in block
-            if (swapSession?.sessionId) {
-              // await batteryApi.completeSwapSession(swapSession.sessionId); 
-              // What does completing a session mean in the new API?
-              // Maybe update RFID card's assigned_battery_id to the new battery?
-              // Update status of old and new batteries?
-              console.log(`Step 5: Swap session ${swapSession.sessionId} to be marked complete.`);
-              // For now, just log.
-            }
-            break;
-          }
-        }
-      } catch (error) {
-        console.error('Error in battery swap flow:', error);
-      }
-    };
+  console.log('--- BATTERYSWAPFLOW IS RENDERING ---');
+  const { currentStep: step, setCurrentStep } = useProgress();
 
-    handleStepLogic();
-  }, [step, swapSession]);
+  // Debug: Log component mount/unmount
+  useEffect(() => {
+    console.log('[BatterySwapFlow] Component mounted');
+    return () => {
+      console.log('[BatterySwapFlow] Component unmounting');
+    };
+  }, []);
+
+  // Debug: Log swapSession changes
+  useEffect(() => {
+    console.log('[BatterySwapFlow] swapSession updated:', swapSession);
+  }, [swapSession]);
+
+  // Socket event handlers
+  const handleAuthResponse = useCallback((data: AuthResponseData) => {
+    console.log('[BatterySwapFlow] handleAuthResponse called with data:', data);
+    console.log('[SocketIO] Received auth_response:', data);
+    console.log('Socket event: auth_response', data);
+    if (data && data.status === 'success') {
+      // Assuming data contains necessary info like rfidCard, user details, or at least user_id
+      // You might need to fetch full card/user details if not provided directly
+      setSwapSession((prev: SwapSession | null) => {
+        if (data.sessionId) { // Ensure sessionId is present for a valid session
+          const newSessionBase: Partial<SwapSession> = {
+            sessionId: data.sessionId,
+            rfidCard: data.rfidCard,
+            user: data.user,
+            status: 'authenticated',
+          };
+          if (prev) { // Update existing session
+            return { ...prev, ...newSessionBase };
+          }
+          // Creating a new session, ensure all required fields are met
+          // This assumes SwapSession's required fields are sessionId and status.
+          // Other fields are optional or will be added by subsequent events.
+          return newSessionBase as SwapSession; 
+        }
+        return null; // Invalid auth data or missing sessionId
+      });
+      setCurrentStep(2); // Proceed to Return Battery step
+    } else {
+      alert(`Authentication Failed: ${data?.message || 'Unknown error'}`);
+      setCurrentStep(1);
+      setSwapSession(null);
+    }
+  }, [setSwapSession, setCurrentStep]);
+
+  const handleSwapInitiated = useCallback((data: SwapInitiatedData) => {
+    console.log('[BatterySwapFlow] handleSwapInitiated called with data:', data);
+    console.log('[SocketIO] Received swap_initiated:', data);
+    console.log('Socket event: swap_initiated', data);
+    if (data && data.slot_id_returned) {
+      setSwapSession((prev: SwapSession | null) => {
+        if (!prev) {
+          console.error('Swap initiated without an active session.');
+          return null;
+        }
+        return {
+          ...prev,
+          returnedBatterySlot: data.slot_id_returned,
+          returnedBatteryId: data.battery_id,
+          status: 'battery_return_initiated',
+        };
+      });
+      setCurrentStep(3); // Proceed to Checking Battery step
+    } else {
+      console.error('Swap initiated event missing data', data);
+      // Optionally handle this error, e.g., by alerting the user or staying on the current step
+    }
+  }, [setSwapSession, setCurrentStep]);
+
+  const handleSwapResult = useCallback((data: SwapResultData) => {
+    console.log('[BatterySwapFlow] handleSwapResult called with data:', data);
+    console.log('[SocketIO] Received swap_result:', data);
+    console.log('Socket event: swap_result', data);
+    if (data && data.status === 'success') {
+      setSwapSession((prev: SwapSession | null) => {
+        if (!prev) {
+          console.error('Swap result received without an active session.');
+          return null;
+        }
+        return {
+          ...prev,
+          newBatterySlot: data.slot_id_new,
+          newBatteryId: data.battery_id_new,
+          newBatterySoh: data.soh,
+          newBatterySoc: data.soc,
+          newBatteryTemp: data.temperature,
+          status: 'new_battery_assigned',
+        };
+      });
+      setCurrentStep(4); // Proceed to Take New Battery step
+    } else {
+      alert(`Swap Failed: ${data?.message || 'Unknown error'}`);
+      // Potentially revert to a previous step or show an error state
+      // For now, let's go back to step 2 (Return Battery)
+      setCurrentStep(2);
+    }
+  }, [setSwapSession, setCurrentStep]);
+
+  const handleSwapRefused = useCallback((data: SwapRefusedData) => {
+    console.log('[BatterySwapFlow] handleSwapRefused called with data:', data);
+    console.log('[SocketIO] Received swap_refused:', data);
+    console.log('Socket event: swap_refused', data);
+    alert(`Swap Refused: ${data?.reason || 'Unknown reason'}`);
+    // Potentially revert to a previous step, e.g., step 2
+    setCurrentStep(2);
+  }, [setCurrentStep]);
+
+  // Register socket event listeners
+  // Register socket event listeners at the top level (NOT inside useEffect)
+  useSocket({
+    onAuth: handleAuthResponse,
+    onSwapInitiated: handleSwapInitiated,
+    onSwapResult: handleSwapResult,
+    onSwapRefused: handleSwapRefused,
+  });
 
   const handleBackToWeatherClick = () => {
-    setStep(1);
+    setCurrentStep(1);
     setSwapSession(null);
     onBack();
   };
 
-  const handleRFIDScanned = async (rfidCode: string) => {
-    try {
-      console.log(`Attempting to find RFID card with code: ${rfidCode}`);
-      // 1. Find the RFID card by its code using the new API endpoint
-      const foundCard = await batteryApi.getRFIDCardByCode(rfidCode);
 
-      console.log('Found RFID Card:', foundCard);
-
-      if (foundCard.status !== 'active') {
-        console.error(`RFID card ${rfidCode} is not active. Status: ${foundCard.status}`);
-        alert(`RFID card ${rfidCode} is not active.`);
-        return;
-      }
-
-      // 2. Fetch the associated user.
-      let user: User | undefined = undefined;
-      if (foundCard.user_id) {
-        try {
-          user = await batteryApi.getUser(foundCard.user_id);
-          console.log('Found User:', user);
-        } catch (userError) {
-          console.error(`Failed to fetch user with ID ${foundCard.user_id}:`, userError);
-          // Decide if this is a critical failure or if we can proceed without full user details
-          alert(`Could not fetch user details for card ${rfidCode}.`);
-          // return; // Or proceed with partial data
-        }
-      } else {
-        console.warn(`RFID card ${rfidCode} is not associated with a user.`);
-        // Decide if this is allowed
-      }
       
-      // 3. Create and set the swap session.
-      const newSwapSession: SwapSession = {
-        sessionId: uuidv4(), // Generate a unique session ID
-        status: 'pending_return', // Initial status after RFID scan
-        rfidCard: foundCard,
-        user: user,
-        // returnedBatterySlot and newBatterySlot will be set in later steps
-      };
-      setSwapSession(newSwapSession);
-      console.log('Swap session started:', newSwapSession);
-      onStepComplete(1); // Proceed to the next step
+      
+      
 
-    } catch (error) {
-      console.error('Failed to start swap session with RFID code:', error);
-      // Handle UI: show specific error message
-      if (error instanceof Error && error.message.includes('RFID card not found')) {
-        alert(`RFID card with code ${rfidCode} not found.`);
-      } else {
-        alert('Failed to start swap session. Please try again.');
-      }
-    }
-  };
-
-  const handleNext = () => {
-    onStepComplete(step);
-  };
+  
 
   return (
     <div className="max-w-md mx-auto">
       <ProgressSteps totalSteps={5} currentStep={step} />
 
       <div className="bg-white/10 backdrop-blur-lg rounded-xl p-8">
-        <StepContent
-          step={step}
-          onNext={handleNext}
-          onRFIDScanned={handleRFIDScanned}
-        />
-        
-        <BatteryGrid 
-          step={step}
-          swapSession={swapSession}
-        />
-
+        <StepContent key={step} step={step} swapSession={swapSession} />
         <button
-          onClick={onBack}
-          onClick={handleBackToWeatherClick}
-          className="mt-6 text-white/60 hover:text-white transition-colors"
-        >
-          Back to Weather
-        </button>
+            onClick={handleBackToWeatherClick} 
+            className="mt-6 text-white/60 hover:text-white transition-colors">
+            Back to Weather
+          </button>
       </div>
     </div>
   );

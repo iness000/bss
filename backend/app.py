@@ -6,6 +6,8 @@ from models import db
 from mqtt.mqtt_auth_listener import start_mqtt_listener
 import threading
 from flask_socketio import SocketIO
+import eventlet
+import eventlet.wsgi
 
 
 
@@ -30,7 +32,7 @@ app = Flask(__name__)
 CORS(app, origins=["http://localhost:5173"])
 
 # 🔌 Initialize SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 # ✅ Pass socketio instance to your MQTT module later
 app.config['socketio'] = socketio
@@ -65,5 +67,7 @@ if __name__ == '__main__':
         threading.Thread(target=start_mqtt_listener, args=(app,), daemon=True).start()
 
         print("🚀 MQTT Listener started...")
+    import eventlet
+    import eventlet.wsgi
     socketio.run(app, debug=True, port=5000)
     

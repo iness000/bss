@@ -25,28 +25,7 @@ A modern, organized React frontend for managing battery swap stations with weath
 
 ## 📁 Project Structure
 
-```
-src/
-├── components/
-│   ├── dashboard/
-│   │   ├── Dashboard.tsx          # Main dashboard component
-│   │   ├── Navigation.tsx         # Tab navigation
-│   │   └── sections/
-│   │       ├── WeatherSection.tsx # Weather display
-│   │       ├── BatterySection.tsx # Battery swap flow
-│   │       └── MockupSection.tsx  # Test scenarios
-│   ├── layout/
-│   │   └── Layout.tsx             # Reusable layout wrapper
-│   ├── ui/
-│   │   ├── Button.tsx             # Reusable button component
-│   │   └── Card.tsx               # Reusable card component
-│   ├── battery/                   # Battery-specific components
-│   └── weather/                   # Weather-specific components
-├── api/
-│   └── batteryApi.ts              # API integration
-└── types/
-    ├── battery.ts                 # Battery-related types
-    └── weather.ts                 # Weather-related types
+``
 ```
 
 ## 🎯 Key Improvements

@@ -44,11 +44,14 @@ export interface RFIDCard {
 
 export interface SwapSession {
   sessionId: string; // This might be generated client-side or come from a future dedicated session endpoint
-  status: 'pending_rfid' | 'pending_return' | 'checking_returned' | 'pending_collection' | 'complete' | 'cancelled';
+  status: 'pending_rfid' | 'authenticated' | 'pending_return' | 'battery_return_initiated' | 'checking_returned' | 'pending_collection' | 'new_battery_assigned' | 'complete' | 'cancelled';
   returnedBatterySlot?: string; // Slot ID where user returned battery
   newBatterySlot?: string; // Slot ID for the new battery
   rfidCard?: RFIDCard; // Added
   user?: User; // Added
+  newBatterySoh?: number;
+  newBatterySoc?: number;
+  newBatteryTemp?: number;
   // We might also want to store the actual Battery objects
   // returnedBattery?: Battery;
   // newBattery?: Battery;
