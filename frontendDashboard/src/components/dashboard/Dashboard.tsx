@@ -1,3 +1,7 @@
+
+import React, { useState } from 'react';
+import { useSocket } from '../../Hooks/useSocket';
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Layout from '../layout/Layout';
@@ -16,6 +20,35 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     console.log('[Dashboard] currentView changed to:', currentView);
   }, [currentView]);
+
+  useSocket({
+    onAuth: (data) => {
+      console.log('auth_response', data);
+      setCurrentView('battery');
+      if (data.status === 'success') {
+        setSwapStep(2);
+      }
+    },
+    onSwapInitiated: (data) => {
+      console.log('swap_initiated', data);
+      setCurrentView('battery');
+      setSwapStep(3);
+    },
+    onSwapResult: (data) => {
+      console.log('swap_result', data);
+      setCurrentView('battery');
+      if (data.status === 'success') {
+        setSwapStep(5);
+      } else {
+        setSwapStep(1);
+      }
+    },
+    onSwapRefused: (data) => {
+      console.log('swap_refused', data);
+      setCurrentView('battery');
+      setSwapStep(1);
+    },
+  });
 
   const handleViewChange = (view: DashboardView) => {
     setCurrentView(view);
