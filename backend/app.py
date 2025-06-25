@@ -12,7 +12,6 @@ import eventlet.wsgi
 
 
 
-
 # Import Blueprints
 from routes.user_routes import user_bp
 from routes.rfid_card_routes import rfid_card_bp
@@ -29,17 +28,16 @@ from flask_migrate import Migrate
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"])
-
+CORS(app, resources={r"/*": {"origins": "*"}})
 # 🔌 Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
 # ✅ Pass socketio instance to your MQTT module later
 app.config['socketio'] = socketio
 
-# Database Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI') or \
-    f"mysql+mysqlconnector://{os.environ.get('MYSQL_USER','root')}:{os.environ.get('MYSQL_PASSWORD','ines123')}@{os.environ.get('MYSQL_HOST','localhost')}:{os.environ.get('MYSQL_PORT','3306')}/{os.environ.get('MYSQL_DB','bss_db')}"
+# 🔧 Database Configuration
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI') or \
+    f"mysql+mysqlconnector://{os.getenv('MYSQL_USER', 'root')}:{os.getenv('MYSQL_PASSWORD', 'ines123')}@{os.getenv('MYSQL_HOST', 'localhost')}:{os.getenv('MYSQL_PORT', '3306')}/{os.getenv('MYSQL_DB', 'bss_db')}"
 
 db.init_app(app)
 
@@ -69,5 +67,5 @@ if __name__ == '__main__':
         print("🚀 MQTT Listener started...")
     import eventlet
     import eventlet.wsgi
-    socketio.run(app, debug=True, port=5000)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
     
