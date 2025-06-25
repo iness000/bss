@@ -3,10 +3,14 @@ import { Battery, CheckCircle, Clock, CreditCard } from 'lucide-react';
 import BatteryHealthDisplay from './BatteryHealthDisplay';
 import { SwapSession } from '../../types/battery';
 
+
 interface StepContentProps {
   step: number;
   onBack?: () => void;
   swapSession: SwapSession | null;
+  onNext?: () => void;
+  
+  
 }
 
 const steps = [
@@ -37,10 +41,11 @@ const steps = [
   }
 ];
 
-const StepContent: React.FC<StepContentProps> = ({ step, swapSession }) => {
+const StepContent: React.FC<StepContentProps> = ({ step, swapSession , onNext }) => {
   
   const currentStep = steps[step - 1];
   console.log(currentStep)
+  
 
   return (
     <motion.div
@@ -68,7 +73,15 @@ const StepContent: React.FC<StepContentProps> = ({ step, swapSession }) => {
             soc={swapSession?.newBatterySoc ?? 0}
             temperature={swapSession?.newBatteryTemp ?? 0}
           />
+          <button
+             onClick={onNext}
+             className="mt-6 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+              >
+            Continue
+            </button>
+ 
         </div>
+        
       )}
 
       

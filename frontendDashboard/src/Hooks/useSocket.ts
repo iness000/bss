@@ -25,9 +25,10 @@ export const useSocket = (eventHandlers: SocketEventHandlers) => {
     if (!socketRef.current) {
       console.log('[useSocket] Initializing socket connection...');
       socketRef.current = io("http://localhost:5000", {
-        // autoConnect: false, // Consider if manual connection is better
+        transports: ["websocket"],  // ✅ Force WebSocket (avoid CORS issues with polling)
         reconnectionAttempts: 5,
-      });
+});
+      
     }
 
     const socket = socketRef.current;

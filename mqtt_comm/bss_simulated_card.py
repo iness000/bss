@@ -5,9 +5,14 @@ from datetime import datetime
 
 STATION_ID = "1"
 BROKER = "localhost"
-PORT = 1883
+PORT = 8883
+
+
 
 client = mqtt.Client(client_id="simulated_card", protocol=mqtt.MQTTv311)
+
+
+
 
 def on_connect(client, userdata, flags, rc):
     print("✅ Connected to broker.")
@@ -98,8 +103,14 @@ def simulate_swap(user_id):
     client.publish(f"bss/{STATION_ID}/swap/activity", json.dumps(log_data), qos=2)
     print("📤 Sent swap/activity")
 
+
+
+
+
 client.on_connect = on_connect
 client.on_message = on_message
+client.tls_set("C:/Program Files/mosquitto/certs/ca.crt")  # ✅ Correct path to ca.crt
+client.tls_insecure_set(True)  # ✅ Skip strict cert verification (dev-safe)
 client.connect(BROKER, PORT, 60)
 
 client.loop_start()

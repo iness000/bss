@@ -6,7 +6,9 @@ export default function SocketLogger() {
   const [logs, setLogs] = useState([]);
 
   useEffect(() => { 
-    const socket = io('http://localhost:5000'); // change this if your backend runs on another host/port
+      const socket = io('http://localhost:5000', {
+       transports: ['websocket']
+});// change this if your backend runs on another host/port
 
     const log = (msg) => setLogs((prev) => [...prev, msg]);
 

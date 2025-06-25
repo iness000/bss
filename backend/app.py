@@ -6,8 +6,6 @@ from models import db
 from mqtt.mqtt_auth_listener import start_mqtt_listener
 import threading
 from flask_socketio import SocketIO
-import eventlet
-import eventlet.wsgi
 
 
 
@@ -23,6 +21,11 @@ from routes.station_routes import station_bp
 from routes.slot_routes import slot_bp
 from routes.swap_routes import swap_bp
 from flask_migrate import Migrate
+import eventlet
+import eventlet.wsgi
+
+eventlet.monkey_patch()  # 💡 Important: Needed for eventlet to work well with socketio
+
 
 
 load_dotenv()
@@ -36,8 +39,9 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 app.config['socketio'] = socketio
 
 # 🔧 Database Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URI') or \
-    f"mysql+mysqlconnector://{os.getenv('MYSQL_USER', 'root')}:{os.getenv('MYSQL_PASSWORD', 'ines123')}@{os.getenv('MYSQL_HOST', 'localhost')}:{os.getenv('MYSQL_PORT', '3306')}/{os.getenv('MYSQL_DB', 'bss_db')}"
+# 🔧 Database Configuration (Local MySQL)
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+mysqlconnector://root:ines123@127.0.0.1:3306/bss_db"
+
 
 db.init_app(app)
 
@@ -65,7 +69,9 @@ if __name__ == '__main__':
         threading.Thread(target=start_mqtt_listener, args=(app,), daemon=True).start()
 
         print("🚀 MQTT Listener started...")
-    import eventlet
-    import eventlet.wsgi
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+
+
+    
+
+    socketio.run(app, debug=True, port=5000)
     
