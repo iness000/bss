@@ -23,11 +23,6 @@ A modern, organized React frontend for managing battery swap stations with weath
 - Station maintenance mode
 - Queue management system
 
-## 📁 Project Structure
-
-``
-```
-
 ## 🎯 Key Improvements
 
 ### 1. **Better Organization**
